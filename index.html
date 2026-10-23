@@ -351,4 +351,203 @@
     <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500 bg-slate-950">
         <p>&copy; 2026 TechFix Student IT Solutions • College of Information Technology, Cebu Eastern College, Inc.</p>
     </footer>
+<!-- Firebase Initialization -->
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyEFYeK9BXB6Mn0Dg3g36_jbbSH9l0YhI",
+            authDomain: "techfix-b06a2.firebaseapp.com",
+            projectId: "techfix-b06a2",
+            storageBucket: "techfix-b06a2.firebasestorage.app",
+            messagingSenderId: "127582035538",
+            appId: "1:127582035538:web:6fc36d4a9404a14aa5c98b",
+            measurementId: "G-CHYG3K6WDS"
+        };
 
+        window.db = null;
+        try {
+            if (typeof firebase !== 'undefined') {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                window.db = firebase.firestore();
+            }
+        } catch (e) {
+            console.warn("Firebase initialized in offline mode", e);
+        }
+    </script>
+
+    <!-- Python Logic powered by PyScript -->
+    <script type="py">
+import random
+import datetime
+from js import document, window
+
+# Tab Switcher logic
+def switch_tab(tab_name):
+    # Hide all tabs
+    document.getElementById('tab-home').classList.add('hidden')
+    document.getElementById('tab-booking').classList.add('hidden')
+    document.getElementById('tab-ticket').classList.add('hidden')
+
+    # Reset nav styles
+    document.getElementById('nav-home').className = "px-3 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
+    document.getElementById('nav-booking').className = "px-3 py-2 rounded-lg transition text-slate-400 hover:text-slate-200"
+    document.getElementById('nav-ticket').className = "px-3 py-2 rounded-lg transition text-slate-400 hover:text-slate-200 flex items-center gap-1.5"
+
+    # Show active tab
+    document.getElementById(f'tab-{tab_name}').classList.remove('hidden')
+    nav_btn = document.getElementById(f'nav-{tab_name}')
+    if nav_btn:
+        nav_btn.className = "px-3 py-2 rounded-lg transition text-blue-400 bg-slate-800 font-semibold"
+    
+    window.scrollTo({"top": 0, "behavior": "smooth"})
+
+# Convenience tab handlers for py-click bindings
+def switch_tab_home(e=None):
+    switch_tab('home')
+
+def switch_tab_booking(e=None):
+    switch_tab('booking')
+
+def switch_tab_ticket(e=None):
+    switch_tab('ticket')
+
+def print_ticket(e=None):
+    window.print()
+
+# Service pre-selection functions
+def select_service(val):
+    switch_tab('booking')
+    service_select = document.getElementById('service-select')
+    for i in range(service_select.options.length):
+        if service_select.options.item(i).value == str(val):
+            service_select.selectedIndex = i
+            break
+    calculate_total()
+
+def select_thermal_service(e=None):
+    select_service(500)
+
+def select_tuneup_service(e=None):
+    select_service(300)
+
+def select_dev_service(e=None):
+    select_service(450)
+
+# Price calculation logic
+def calculate_total():
+    service_select = document.getElementById('service-select')
+    urgency_select = document.getElementById('urgency-select')
+
+    base_cost = float(service_select.value or 0)
+    urgency_cost = float(urgency_select.value or 0)
+    total = base_cost + urgency_cost
+
+    document.getElementById('calc-base').innerText = f"PHP {base_cost:.2f}"
+    document.getElementById('calc-urgency').innerText = f"PHP {urgency_cost:.2f}"
+    document.getElementById('calc-price').innerText = f"PHP {total:.2f}"
+
+    calc_time_el = document.getElementById('calc-time')
+    if urgency_cost > 0:
+        calc_time_el.innerText = "Priority Emergency (1-2 Hours)"
+        calc_time_el.className = "text-amber-400 font-semibold"
+    else:
+        calc_time_el.innerText = "Same Day (3-5 Hours)"
+        calc_time_el.className = "text-blue-400 font-semibold"
+
+    return base_cost, urgency_cost, total
+
+def on_price_change(e=None):
+    calculate_total()
+
+# Booking submission handling
+async def handle_booking_submit(event):
+    event.preventDefault()
+
+    name = document.getElementById('client-name').value.strip()
+    course = document.getElementById('client-course').value.strip()
+    contact = document.getElementById('client-contact').value.strip()
+    error_box = document.getElementById('form-error')
+
+    if not name or not course or not contact:
+        error_box.innerText = "Please fill in all required fields."
+        error_box.classList.remove('hidden')
+        return
+
+    error_box.classList.add('hidden')
+
+    service_select = document.getElementById('service-select')
+    urgency_select = document.getElementById('urgency-select')
+
+    service_option = service_select.options.item(service_select.selectedIndex)
+    urgency_option = urgency_select.options.item(urgency_select.selectedIndex)
+
+    service_name = service_option.getAttribute('data-name') or service_option.text
+    urgency_name = urgency_option.getAttribute('data-name') or urgency_option.text
+
+    base_cost, urgency_cost, total_price = calculate_total()
+    random_num = random.randint(1000, 9999)
+    ticket_id = f"#TF-2026-{random_num}"
+    
+    now = datetime.datetime.now()
+    timestamp_str = now.strftime("%b %d, %Y, %I:%M %p")
+
+    booking_data = {
+        "ticketId": ticket_id,
+        "clientName": name,
+        "courseYear": course,
+        "contactInfo": contact,
+        "serviceName": service_name,
+        "serviceCost": base_cost,
+        "urgencyName": urgency_name,
+        "urgencyFee": urgency_cost,
+        "totalPrice": total_price,
+        "status": "Pending Drop-off",
+        "createdAt": now.isoformat()
+    }
+
+    saved_to_firebase = False
+    if hasattr(window, 'db') and window.db:
+        try:
+            # Add document into Firestore collection
+            window.db.collection("bookings").add(booking_data)
+            saved_to_firebase = True
+        except Exception as e:
+            print("Firestore save failed, generated locally:", e)
+
+    render_ticket(booking_data, timestamp_str, saved_to_firebase)
+
+    document.getElementById('ticket-badge').classList.remove('hidden')
+    document.getElementById('ticket-empty').classList.add('hidden')
+    document.getElementById('ticket-active').classList.remove('hidden')
+
+    switch_tab('ticket')
+
+def render_ticket(data, formatted_time, is_saved):
+    document.getElementById('ticket-id').innerText = data["ticketId"]
+    document.getElementById('ticket-name').innerText = data["clientName"]
+    document.getElementById('ticket-course').innerText = data["courseYear"]
+    document.getElementById('ticket-contact').innerText = data["contactInfo"]
+    document.getElementById('ticket-service-name').innerText = data["serviceName"]
+    document.getElementById('ticket-urgency-name').innerText = data["urgencyName"]
+    document.getElementById('ticket-timestamp').innerText = formatted_time
+
+    document.getElementById('breakdown-service-label').innerText = data["serviceName"]
+    document.getElementById('breakdown-service-cost').innerText = f"PHP {data['serviceCost']:.2f}"
+    document.getElementById('breakdown-urgency-label').innerText = data["urgencyName"]
+    document.getElementById('breakdown-urgency-cost').innerText = f"PHP {data['urgencyFee']:.2f}"
+    document.getElementById('ticket-total').innerText = f"PHP {data['totalPrice']:.2f}"
+
+    clean_id = data["ticketId"].replace('#', '')
+    document.getElementById('ticket-barcode').innerText = f"||| {clean_id} |||| |||"
+
+    db_status_el = document.getElementById('ticket-db-status')
+    if is_saved:
+        db_status_el.innerText = "Database Sync: Saved to Firebase"
+        db_status_el.className = "text-[10px] px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20 inline-block mt-1"
+    else:
+        db_status_el.innerText = "Database Sync: Local Offline Ticket"
+        db_status_el.className = "text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 inline-block mt-1"
+    </script>
+</body>
+</html>
